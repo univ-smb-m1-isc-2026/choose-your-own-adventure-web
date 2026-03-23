@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { Node, Edge, Connection } from "reactflow";
 import ReactFlow, {
   addEdge,
@@ -145,8 +145,8 @@ export default function EditorPage() {
                 n.data.type === "start"
                   ? "#6366f1"
                   : n.data.isEnding
-                  ? "#10b981"
-                  : "#94a3b8"
+                    ? "#10b981"
+                    : "#94a3b8"
               }
               className="border border-gray-200 rounded-lg shadow-sm"
             />
