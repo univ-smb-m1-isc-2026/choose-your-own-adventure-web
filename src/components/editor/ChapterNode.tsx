@@ -1,84 +1,60 @@
 import { Handle, Position } from "reactflow";
 import type { NodeProps } from "reactflow";
+import type { EditorNodeData, EditorChapterType } from "@/types/editor";
 
-type ChapterType = "start" | "normal" | "combat" | "ending";
-
-interface ChapterData {
-  label: string;
-  content: string;
-  type: ChapterType;
-  isEnding: boolean;
-}
-
-const typeConfig: Record<ChapterType, { color: string; bg: string; badge: string; dot: string }> = {
-  start: {
-    color: "border-indigo-400",
-    bg: "bg-indigo-50",
-    badge: "bg-indigo-100 text-indigo-700",
-    dot: "bg-indigo-400",
-  },
-  normal: {
-    color: "border-slate-200",
-    bg: "bg-white",
-    badge: "bg-slate-100 text-slate-600",
-    dot: "bg-slate-400",
-  },
-  combat: {
-    color: "border-rose-300",
-    bg: "bg-rose-50",
-    badge: "bg-rose-100 text-rose-700",
-    dot: "bg-rose-400",
-  },
-  ending: {
-    color: "border-emerald-300",
-    bg: "bg-emerald-50",
-    badge: "bg-emerald-100 text-emerald-700",
-    dot: "bg-emerald-400",
-  },
+const typeConfig: Record<EditorChapterType, { border: string; bg: string; badgeBg: string; badgeText: string; dot: string }> = {
+  start: { border: '#7c5bf5', bg: 'rgba(124,91,245,0.08)', badgeBg: 'rgba(124,91,245,0.15)', badgeText: '#a78bfa', dot: '#7c5bf5' },
+  normal: { border: '#252533', bg: '#1c1c27', badgeBg: 'rgba(255,255,255,0.06)', badgeText: '#6b6c85', dot: '#6b6c85' },
+  combat: { border: '#f87171', bg: 'rgba(248,113,113,0.06)', badgeBg: 'rgba(248,113,113,0.12)', badgeText: '#fca5a5', dot: '#f87171' },
+  ending: { border: '#34d399', bg: 'rgba(52,211,153,0.06)', badgeBg: 'rgba(52,211,153,0.12)', badgeText: '#6ee7b7', dot: '#34d399' },
 };
 
-const typeLabels: Record<ChapterType, string> = {
+const typeLabels: Record<EditorChapterType, string> = {
   start: "Départ",
   normal: "Chapitre",
   combat: "Combat",
   ending: "Fin",
 };
 
-export default function ChapterNode({ data, selected }: NodeProps<ChapterData>) {
-  const nodeType: ChapterType = data.isEnding ? "ending" : (data.type as ChapterType) || "normal";
+export default function ChapterNode({ data, selected }: NodeProps<EditorNodeData>) {
+  const nodeType: EditorChapterType = data.isEnding ? "ending" : data.type || "normal";
   const cfg = typeConfig[nodeType];
 
   return (
     <div
-      className={`
-        w-56 rounded-xl border-2 shadow-sm transition-all duration-150
-        ${cfg.color} ${cfg.bg}
-        ${selected ? "shadow-lg ring-2 ring-indigo-300 ring-offset-1" : "hover:shadow-md"}
-      `}
+      style={{
+        width: '224px',
+        borderRadius: '12px',
+        border: `2px solid ${selected ? '#7c5bf5' : cfg.border}`,
+        background: cfg.bg,
+        boxShadow: selected ? '0 0 20px rgba(124,91,245,0.3)' : '0 2px 8px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+      }}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !border-2 !border-white !bg-slate-400"
+        style={{ width: 12, height: 12, border: '2px solid #16161d', background: '#6b6c85' }}
       />
 
-      <div className="px-3 py-2.5">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1.5">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${cfg.badge}`}>
+      <div style={{ padding: '10px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+            background: cfg.badgeBg, color: cfg.badgeText,
+          }}>
             {typeLabels[nodeType]}
           </span>
-          <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot }} />
         </div>
 
-        {/* Title */}
-        <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#ecedf2', lineHeight: 1.3, marginBottom: 2 }}>
           {data.label || "Sans titre"}
         </p>
 
-        {/* Preview */}
         {data.content && (
-          <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
+          <p style={{ fontSize: 11, color: '#6b6c85', marginTop: 4, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {data.content}
           </p>
         )}
@@ -87,7 +63,7 @@ export default function ChapterNode({ data, selected }: NodeProps<ChapterData>) 
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3 !h-3 !border-2 !border-white !bg-indigo-400"
+        style={{ width: 12, height: 12, border: '2px solid #16161d', background: '#7c5bf5' }}
       />
     </div>
   );

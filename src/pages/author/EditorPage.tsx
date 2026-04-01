@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, type MouseEvent as ReactMouseEvent } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import type { Node, Edge, Connection } from "reactflow";
 import ReactFlow, {
   addEdge,
@@ -16,33 +17,85 @@ import ChapterNode from "@/components/editor/ChapterNode";
 import ChapterPanel from "@/components/editor/ChapterPanel";
 import EditorToolbar from "@/components/editor/EditorToolbar";
 import ValidationPanel from "@/components/editor/ValidationPanel";
+import { adventureService, type SaveAdventurePayload } from "@/services/adventureService";
+import type { EditorNodeData } from "@/types/editor";
 
 const nodeTypes = { chapter: ChapterNode };
 
-const initialNodes: Node[] = [
-  {
-    id: "1",
-    type: "chapter",
-    position: { x: 300, y: 80 },
-    data: {
-      label: "Chapitre 1 – Le début",
-      content: "Vous vous réveillez dans une forêt sombre...",
-      type: "start",
-      isEnding: false,
-    },
-  },
-];
-
-const initialEdges: Edge[] = [];
-
-let nodeIdCounter = 2;
+let nodeIdCounter = 100;
 
 export default function EditorPage() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const { adventureId } = useParams<{ adventureId: string }>();
+  const navigate = useNavigate();
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<EditorNodeData>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNode, setSelectedNode] = useState<Node<EditorNodeData> | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [adventureTitle, setAdventureTitle] = useState("Mon Aventure");
+  const [currentAdventureId, setCurrentAdventureId] = useState<string | undefined>(adventureId);
+  const [saving, setSaving] = useState(false);
+
+  // Load existing adventure
+  useEffect(() => {
+    if (!adventureId) {
+      // New adventure - add start node
+      const startNode: Node<EditorNodeData> = {
+        id: "1",
+        type: "chapter",
+        position: { x: 300, y: 80 },
+        data: {
+          label: "Chapitre 1 – Le début",
+          content: "Vous vous réveillez dans une forêt sombre...",
+          type: "start",
+          isEnding: false,
+        },
+      };
+      setNodes([startNode]);
+      return;
+    }
+
+    Promise.all([
+      adventureService.getById(adventureId),
+      adventureService.getChapters(adventureId),
+    ]).then(([adventure, chapters]) => {
+      setAdventureTitle(adventure.title);
+      setCurrentAdventureId(adventure.id);
+
+      const loadedNodes: Node<EditorNodeData>[] = chapters.map((ch, i) => ({
+        id: ch.id,
+        type: "chapter",
+        position: { x: ch.positionX || 100 + (i % 3) * 250, y: ch.positionY || 80 + Math.floor(i / 3) * 200 },
+        data: {
+          label: ch.title,
+          content: ch.content || "",
+          type: ch.isStart ? "start" : ch.isEnding ? "ending" : "normal",
+          isEnding: ch.isEnding,
+          imageUrl: ch.imageUrl,
+        },
+      }));
+
+      const loadedEdges: Edge[] = [];
+      chapters.forEach((ch) => {
+        ch.choices?.forEach((choice) => {
+          loadedEdges.push({
+            id: `e-${ch.id}-${choice.toChapterId}`,
+            source: ch.id,
+            target: choice.toChapterId,
+            animated: false,
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
+            style: { stroke: "#7c5bf5", strokeWidth: 2 },
+            label: choice.label || "Choix",
+            labelStyle: { fontSize: 11, fill: "#9b9cb5" },
+            labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
+          });
+        });
+      });
+
+      setNodes(loadedNodes);
+      setEdges(loadedEdges);
+    }).catch(console.error);
+  }, [adventureId, setEdges, setNodes]);
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -51,11 +104,11 @@ export default function EditorPage() {
           {
             ...params,
             animated: false,
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
-            style: { stroke: "#6366f1", strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
+            style: { stroke: "#7c5bf5", strokeWidth: 2 },
             label: "Choix",
-            labelStyle: { fontSize: 11, fill: "#6b7280" },
-            labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
+            labelStyle: { fontSize: 11, fill: "#9b9cb5" },
+            labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
           },
           eds
         )
@@ -65,7 +118,7 @@ export default function EditorPage() {
 
   const addChapter = () => {
     const id = String(nodeIdCounter++);
-    const newNode: Node = {
+    const newNode: Node<EditorNodeData> = {
       id,
       type: "chapter",
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 200 },
@@ -79,11 +132,11 @@ export default function EditorPage() {
     setNodes((nds) => [...nds, newNode]);
   };
 
-  const onNodeClick = useCallback((_: any, node: Node) => {
+  const onNodeClick = useCallback((_: ReactMouseEvent, node: Node<EditorNodeData>) => {
     setSelectedNode(node);
   }, []);
 
-  const updateNodeData = (id: string, data: any) => {
+  const updateNodeData = (id: string, data: Partial<EditorNodeData>) => {
     setNodes((nds) =>
       nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n))
     );
@@ -103,9 +156,100 @@ export default function EditorPage() {
     setSelectedNode(null);
   };
 
+  const handleSave = async (): Promise<string | undefined> => {
+    setSaving(true);
+    try {
+      const payload: SaveAdventurePayload = {
+        title: adventureTitle,
+        summary: "",
+        language: "fr",
+        difficulty: "MEDIUM",
+        allowBacktrack: true,
+        tags: [],
+        chapters: nodes.map((n) => ({
+          tempId: n.id,
+          title: n.data.label,
+          content: n.data.content,
+          imageUrl: n.data.imageUrl || null,
+          type: n.data.type,
+          isEnding: n.data.isEnding,
+          positionX: Math.round(n.position.x),
+          positionY: Math.round(n.position.y),
+        })),
+        edges: edges.map((e) => ({
+          sourceId: e.source,
+          targetId: e.target,
+          label: (e.label as string) || "Choix",
+        })),
+      };
+
+      const result = await adventureService.saveComplete(payload, currentAdventureId);
+      setCurrentAdventureId(result.id);
+
+      // Reload to get proper UUIDs
+      const chapters = await adventureService.getChapters(result.id);
+      const loadedNodes: Node<EditorNodeData>[] = chapters.map((ch, i) => ({
+        id: ch.id,
+        type: "chapter" as const,
+        position: { x: ch.positionX || 100 + (i % 3) * 250, y: ch.positionY || 80 + Math.floor(i / 3) * 200 },
+        data: {
+          label: ch.title,
+          content: ch.content || "",
+          type: ch.isStart ? "start" : ch.isEnding ? "ending" : "normal",
+          isEnding: ch.isEnding,
+          imageUrl: ch.imageUrl,
+        },
+      }));
+      const loadedEdges: Edge[] = [];
+      chapters.forEach((ch) => {
+        ch.choices?.forEach((choice) => {
+          loadedEdges.push({
+            id: `e-${ch.id}-${choice.toChapterId}`,
+            source: ch.id,
+            target: choice.toChapterId,
+            animated: false,
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
+            style: { stroke: "#7c5bf5", strokeWidth: 2 },
+            label: choice.label || "Choix",
+            labelStyle: { fontSize: 11, fill: "#9b9cb5" },
+            labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
+          });
+        });
+      });
+      setNodes(loadedNodes);
+      setEdges(loadedEdges);
+
+      // Update URL
+      if (!adventureId) {
+        navigate(`/editor/${result.id}`, { replace: true });
+      }
+      return result.id;
+    } catch (e) {
+      console.error("Save error:", e);
+      alert("Erreur lors de la sauvegarde");
+      return undefined;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    const adventureIdToPublish = currentAdventureId ?? await handleSave();
+    if (!adventureIdToPublish) {
+      return;
+    }
+
+    try {
+      await adventureService.publish(adventureIdToPublish);
+      alert("Aventure publiée !");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la publication");
+    }
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50 font-sans">
-      {/* Top bar */}
+    <div className="h-screen flex flex-col" style={{ background: '#0f0f13' }}>
       <EditorToolbar
         title={adventureTitle}
         onTitleChange={setAdventureTitle}
@@ -115,10 +259,13 @@ export default function EditorPage() {
         onValidate={() => setShowValidation(true)}
         nodeCount={nodes.length}
         edgeCount={edges.length}
+        onSave={handleSave}
+        onPublish={handlePublish}
+        saving={saving}
+        onBack={() => navigate('/dashboard')}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas */}
         <div className="flex-1 relative">
           <ReactFlow
             nodes={nodes}
@@ -131,36 +278,37 @@ export default function EditorPage() {
             nodeTypes={nodeTypes}
             fitView
             deleteKeyCode="Delete"
-            className="bg-gray-50"
+            style={{ background: '#0f0f13' }}
           >
             <Background
               variant={BackgroundVariant.Dots}
               gap={20}
               size={1}
-              color="#e5e7eb"
+              color="#252533"
             />
-            <Controls className="shadow-sm border border-gray-200 rounded-lg overflow-hidden" />
+            <Controls className="!bg-[#1c1c27] !border-[#252533] !rounded-lg !shadow-lg [&>button]:!bg-[#1c1c27] [&>button]:!border-[#252533] [&>button]:!fill-[#9b9cb5] [&>button:hover]:!bg-[#252533]" />
             <MiniMap
               nodeColor={(n) =>
                 n.data.type === "start"
-                  ? "#6366f1"
+                  ? "#7c5bf5"
                   : n.data.isEnding
-                    ? "#10b981"
-                    : "#94a3b8"
+                    ? "#34d399"
+                    : "#6b6c85"
               }
-              className="border border-gray-200 rounded-lg shadow-sm"
+              className="!bg-[#1c1c27] !border-[#252533] !rounded-lg !shadow-lg"
+              maskColor="rgba(15,15,19,0.7)"
             />
             <Panel position="bottom-left">
-              <div className="text-xs text-gray-400 bg-white/80 px-3 py-1.5 rounded-full border border-gray-200">
-                Glissez pour connecter • Double-clic pour éditer • Suppr pour effacer
+              <div className="text-xs px-3 py-1.5 rounded-full border" style={{ color: '#6b6c85', background: 'rgba(28,28,39,0.9)', borderColor: '#252533' }}>
+                Glissez pour connecter • Cliquez pour éditer • Suppr pour effacer
               </div>
             </Panel>
           </ReactFlow>
         </div>
 
-        {/* Side panel */}
         {selectedNode && (
           <ChapterPanel
+            key={selectedNode.id}
             node={selectedNode}
             onUpdate={(data) => updateNodeData(selectedNode.id, data)}
             onClose={() => setSelectedNode(null)}
@@ -169,12 +317,12 @@ export default function EditorPage() {
         )}
       </div>
 
-      {/* Validation modal */}
       {showValidation && (
         <ValidationPanel
           nodes={nodes}
           edges={edges}
           onClose={() => setShowValidation(false)}
+          onPublish={handlePublish}
         />
       )}
     </div>

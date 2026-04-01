@@ -1,81 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Node } from "reactflow";
 import { X, Trash2, BookOpen, Swords, Flag, Play } from "lucide-react";
+import type { EditorNodeData, EditorChapterType } from "@/types/editor";
 
 interface ChapterPanelProps {
-  node: Node;
-  onUpdate: (data: Partial<any>) => void;
+  node: Node<EditorNodeData>;
+  onUpdate: (data: Partial<EditorNodeData>) => void;
   onClose: () => void;
   onDelete: () => void;
 }
 
-const typeOptions = [
-  { value: "start", label: "Départ", icon: Play, color: "text-indigo-600" },
-  { value: "normal", label: "Chapitre", icon: BookOpen, color: "text-slate-600" },
-  { value: "combat", label: "Combat", icon: Swords, color: "text-rose-600" },
-  { value: "ending", label: "Fin", icon: Flag, color: "text-emerald-600" },
+const typeOptions: Array<{ value: EditorChapterType; label: string; icon: typeof Play }> = [
+  { value: "start", label: "Départ", icon: Play },
+  { value: "normal", label: "Chapitre", icon: BookOpen },
+  { value: "combat", label: "Combat", icon: Swords },
+  { value: "ending", label: "Fin", icon: Flag },
 ];
 
 export default function ChapterPanel({ node, onUpdate, onClose, onDelete }: ChapterPanelProps) {
   const [label, setLabel] = useState(node.data.label || "");
   const [content, setContent] = useState(node.data.content || "");
-  const [type, setType] = useState(node.data.isEnding ? "ending" : node.data.type || "normal");
-  const [allowBacktrack, setAllowBacktrack] = useState(node.data.allowBacktrack ?? true);
+  const [type, setType] = useState<EditorChapterType>(node.data.isEnding ? "ending" : node.data.type || "normal");
+  const allowBacktrack = node.data.allowBacktrack ?? true;
   const [imageUrl, setImageUrl] = useState(node.data.imageUrl || "");
-
-  useEffect(() => {
-    setLabel(node.data.label || "");
-    setContent(node.data.content || "");
-    setType(node.data.isEnding ? "ending" : node.data.type || "normal");
-    setAllowBacktrack(node.data.allowBacktrack ?? true);
-    setImageUrl(node.data.imageUrl || "");
-  }, [node.id]);
 
   const handleSave = () => {
     onUpdate({
-      label,
-      content,
+      label, content,
       type: type === "ending" ? "normal" : type,
       isEnding: type === "ending",
-      allowBacktrack,
-      imageUrl,
+      allowBacktrack, imageUrl,
     });
   };
 
+  const inputStyle = {
+    width: '100%', padding: '8px 12px', fontSize: '0.875rem',
+    border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
+    background: '#16161d', color: '#ecedf2', outline: 'none',
+    fontFamily: 'Inter, system-ui, sans-serif',
+  };
+
   return (
-    <div className="w-80 bg-white border-l border-gray-100 flex flex-col shadow-sm">
+    <div style={{ width: 320, background: '#1c1c27', borderLeft: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-sm font-semibold text-gray-700">Éditer le chapitre</span>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-        >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#ecedf2' }}>Éditer le chapitre</span>
+        <button onClick={onClose} style={{ padding: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b6c85', borderRadius: 6 }}>
           <X size={16} />
         </button>
       </div>
 
       {/* Form */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {/* Type selector */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Type */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, color: '#6b6c85', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
             Type de nœud
           </label>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {typeOptions.map((opt) => {
               const Icon = opt.icon;
+              const isActive = type === opt.value;
               return (
                 <button
                   key={opt.value}
                   onClick={() => setType(opt.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
-                    type === opt.value
-                      ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-medium"
-                      : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+                    fontSize: '0.8125rem', cursor: 'pointer', transition: 'all 0.15s',
+                    border: isActive ? '1px solid #7c5bf5' : '1px solid rgba(255,255,255,0.06)',
+                    background: isActive ? 'rgba(124,91,245,0.1)' : 'transparent',
+                    color: isActive ? '#a78bfa' : '#9b9cb5',
+                    fontWeight: isActive ? 600 : 400,
+                  }}
                 >
-                  <Icon size={13} className={type === opt.value ? "text-indigo-500" : opt.color} />
+                  <Icon size={13} />
                   {opt.label}
                 </button>
               );
@@ -85,105 +84,59 @@ export default function ChapterPanel({ node, onUpdate, onClose, onDelete }: Chap
 
         {/* Title */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+          <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, color: '#6b6c85', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
             Titre
           </label>
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Nom du chapitre..."
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 text-gray-800 placeholder-gray-300 transition-all"
-          />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nom du chapitre..." style={inputStyle} />
         </div>
 
         {/* Content */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+          <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, color: '#6b6c85', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
             Contenu narratif
           </label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Le texte affiché au joueur lorsqu'il arrive sur ce chapitre..."
+            placeholder="Le texte affiché au joueur..."
             rows={6}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 text-gray-800 placeholder-gray-300 transition-all resize-none leading-relaxed"
+            style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
           />
-          <p className="text-[10px] text-gray-400 mt-1">{content.length} caractères</p>
+          <p style={{ fontSize: 10, color: '#6b6c85', marginTop: 4 }}>{content.length} caractères</p>
         </div>
 
-        {/* Image URL */}
+        {/* Image */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-            Image (URL optionnelle)
+          <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 700, color: '#6b6c85', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+            Image (URL)
           </label>
-          <input
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 text-gray-800 placeholder-gray-300 transition-all"
-          />
-          {imageUrl && (
-            <img
-              src={imageUrl}
-              alt=""
-              className="mt-2 w-full h-24 object-cover rounded-lg border border-gray-200"
-              onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
-            />
-          )}
-        </div>
-
-        {/* Options */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Options
-          </label>
-          <label className="flex items-center gap-2.5 cursor-pointer group">
-            <div
-              onClick={() => setAllowBacktrack(!allowBacktrack)}
-              className={`w-9 h-5 rounded-full transition-colors relative ${
-                allowBacktrack ? "bg-indigo-500" : "bg-gray-200"
-              }`}
-            >
-              <div
-                className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                  allowBacktrack ? "translate-x-4" : "translate-x-0.5"
-                }`}
-              />
-            </div>
-            <span className="text-sm text-gray-600 group-hover:text-gray-800">
-              Autoriser le retour en arrière
-            </span>
-          </label>
+          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." style={inputStyle} />
         </div>
 
         {/* Metadata */}
-        <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-400 space-y-1">
-          <div className="flex justify-between">
-            <span>ID du nœud</span>
-            <span className="font-mono text-gray-500">{node.id}</span>
+        <div style={{ background: '#16161d', borderRadius: 8, padding: '10px 12px', fontSize: '0.75rem', color: '#6b6c85' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span>ID</span><span style={{ fontFamily: 'monospace', color: '#9b9cb5' }}>{node.id.substring(0, 8)}...</span>
           </div>
-          <div className="flex justify-between">
-            <span>Position</span>
-            <span className="font-mono text-gray-500">
-              {Math.round(node.position.x)}, {Math.round(node.position.y)}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Position</span><span style={{ fontFamily: 'monospace', color: '#9b9cb5' }}>{Math.round(node.position.x)}, {Math.round(node.position.y)}</span>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
-        <button
-          onClick={onDelete}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-        >
-          <Trash2 size={13} />
-          Supprimer
+      <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 8 }}>
+        <button onClick={onDelete} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: '0.875rem',
+          color: '#f87171', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer'
+        }}>
+          <Trash2 size={13} /> Supprimer
         </button>
-        <button
-          onClick={handleSave}
-          className="flex-1 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:scale-[0.98] transition-all"
-        >
+        <button onClick={handleSave} style={{
+          flex: 1, padding: '8px 12px', fontSize: '0.875rem', fontWeight: 600,
+          background: 'linear-gradient(135deg, #7c5bf5, #9b7bf7)', color: 'white',
+          border: 'none', borderRadius: 8, cursor: 'pointer'
+        }}>
           Enregistrer
         </button>
       </div>

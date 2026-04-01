@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, CheckCircle, Save, Eye, ChevronLeft, Layers } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Save, ChevronLeft, Layers, Loader2, Send } from "lucide-react";
 
 interface EditorToolbarProps {
   title: string;
@@ -10,6 +10,10 @@ interface EditorToolbarProps {
   onValidate: () => void;
   nodeCount: number;
   edgeCount: number;
+  onSave?: () => void;
+  onPublish?: () => void;
+  saving?: boolean;
+  onBack?: () => void;
 }
 
 export default function EditorToolbar({
@@ -21,22 +25,30 @@ export default function EditorToolbar({
   onValidate,
   nodeCount,
   edgeCount,
+  onSave,
+  onPublish,
+  saving,
+  onBack,
 }: EditorToolbarProps) {
   const [editingTitle, setEditingTitle] = useState(false);
 
   return (
-    <div className="h-14 bg-white border-b border-gray-100 flex items-center px-4 gap-3 shadow-sm z-10">
+    <div className="h-14 flex items-center px-4 gap-3 z-10" style={{
+      background: '#16161d',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.3)'
+    }}>
       {/* Back */}
-      <button className="flex items-center gap-1 text-gray-400 hover:text-gray-700 transition-colors text-sm mr-1">
+      <button onClick={onBack} className="flex items-center gap-1 transition-colors text-sm mr-1" style={{ color: '#6b6c85' }}>
         <ChevronLeft size={16} />
         <span className="hidden sm:inline">Aventures</span>
       </button>
 
-      <div className="w-px h-5 bg-gray-200" />
+      <div className="w-px h-5" style={{ background: '#252533' }} />
 
       {/* Title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <Layers size={16} className="text-indigo-400 shrink-0" />
+        <Layers size={16} style={{ color: '#7c5bf5' }} className="shrink-0" />
         {editingTitle ? (
           <input
             autoFocus
@@ -44,12 +56,14 @@ export default function EditorToolbar({
             onChange={(e) => onTitleChange(e.target.value)}
             onBlur={() => setEditingTitle(false)}
             onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
-            className="text-sm font-semibold text-gray-800 bg-transparent border-b border-indigo-300 focus:outline-none min-w-0 max-w-xs"
+            className="text-sm font-semibold bg-transparent focus:outline-none min-w-0 max-w-xs"
+            style={{ color: '#ecedf2', borderBottom: '1px solid #7c5bf5' }}
           />
         ) : (
           <button
             onClick={() => setEditingTitle(true)}
-            className="text-sm font-semibold text-gray-800 hover:text-indigo-600 transition-colors truncate"
+            className="text-sm font-semibold transition-colors truncate"
+            style={{ color: '#ecedf2' }}
           >
             {title}
           </button>
@@ -57,9 +71,10 @@ export default function EditorToolbar({
       </div>
 
       {/* Stats */}
-      <div className="hidden md:flex items-center gap-3 text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+      <div className="hidden md:flex items-center gap-3 text-xs px-3 py-1.5 rounded-full"
+        style={{ color: '#6b6c85', background: '#1c1c27', border: '1px solid rgba(255,255,255,0.06)' }}>
         <span>{nodeCount} nœud{nodeCount !== 1 ? "s" : ""}</span>
-        <span className="text-gray-200">•</span>
+        <span style={{ color: '#252533' }}>•</span>
         <span>{edgeCount} lien{edgeCount !== 1 ? "s" : ""}</span>
       </div>
 
@@ -67,7 +82,8 @@ export default function EditorToolbar({
       <div className="flex items-center gap-1.5">
         <button
           onClick={onAddChapter}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:scale-[0.98] transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg transition-all active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #7c5bf5, #9b7bf7)' }}
         >
           <Plus size={14} />
           <span className="hidden sm:inline">Chapitre</span>
@@ -76,29 +92,40 @@ export default function EditorToolbar({
         {hasSelection && (
           <button
             onClick={onDeleteSelected}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors"
+            style={{ color: '#f87171' }}
           >
             <Trash2 size={14} />
           </button>
         )}
 
-        <div className="w-px h-5 bg-gray-200 mx-0.5" />
-
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
-          <Eye size={14} />
-          <span className="hidden sm:inline">Aperçu</span>
-        </button>
+        <div className="w-px h-5 mx-0.5" style={{ background: '#252533' }} />
 
         <button
           onClick={onValidate}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors"
+          style={{ color: '#9b9cb5' }}
         >
           <CheckCircle size={14} />
           <span className="hidden sm:inline">Valider</span>
         </button>
 
-        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 active:scale-[0.98] transition-all">
-          <Save size={14} />
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-all active:scale-[0.98]"
+          style={{ color: '#ecedf2', background: '#252533', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          <span className="hidden sm:inline">{saving ? 'Sauvegarde...' : 'Sauvegarder'}</span>
+        </button>
+
+        <button
+          onClick={onPublish}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-all active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #34d399, #6ee7b7)', color: '#0f0f13' }}
+        >
+          <Send size={14} />
           <span className="hidden sm:inline">Publier</span>
         </button>
       </div>
