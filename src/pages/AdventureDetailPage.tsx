@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { favoriteService } from '../services/favoriteService';
 import {
   BookOpen, Clock, BarChart3, Users, Heart, Play,
-  Tag, Globe, Shield, ArrowLeft, Star
+  Tag, Globe, Shield, ArrowLeft, Star, Edit3
 } from 'lucide-react';
 
 const diffLabels: Record<string, string> = { EASY: 'Facile', MEDIUM: 'Moyen', HARD: 'Difficile' };
@@ -23,7 +23,7 @@ function AdventureDetailContent({ id }: { id: string }) {
   const [adventure, setAdventure] = useState<AdventureDetail | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading');
   const [fav, setFav] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -113,6 +113,12 @@ function AdventureDetailContent({ id }: { id: string }) {
             <button onClick={toggleFav} className={`btn btn-outline btn-lg ${fav ? 'btn-fav-active' : ''}`}>
               <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
               {fav ? 'Favori' : 'Ajouter aux favoris'}
+            </button>
+          )}
+          {isAuthenticated && adventure.authorUsername === user?.username && (
+            <button onClick={() => navigate(`/editor/${id}`)} className="btn btn-outline btn-lg">
+              <Edit3 size={18} />
+              Éditer l'aventure
             </button>
           )}
         </div>

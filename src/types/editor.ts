@@ -7,4 +7,12 @@ export interface EditorNodeData {
   isEnding: boolean;
   imageUrl?: string;
   allowBacktrack?: boolean;
+  combatEnemyName?: string;
+  combatEnemyHealth?: number;
+}
+
+export interface EditorEdgeData {
+  label: string;
+  healthDelta?: number;
+  requiresConfirmation?: boolean;
 }

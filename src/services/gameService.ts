@@ -13,6 +13,9 @@ export interface GameState {
     isStart: boolean;
     isEnding: boolean;
     endingType: string;
+    isCombat: boolean;
+    combatEnemyName: string;
+    combatEnemyHealth: number;
   };
   availableChoices: {
     id: string;
@@ -21,6 +24,7 @@ export interface GameState {
     displayOrder: number;
     requiresConfirmation: boolean;
     isAvailable: boolean;
+    healthDelta: number | null;
   }[];
   health: number;
   maxHealth: number;
@@ -62,8 +66,18 @@ export const gameService = {
     return res.data;
   },
 
+  async restart(adventureId: string): Promise<GameState> {
+    const res = await api.post<GameState>(`/game/restart/${adventureId}`);
+    return res.data;
+  },
+
   async makeChoice(saveGameId: string, choiceId: string): Promise<GameState> {
     const res = await api.post<GameState>(`/game/${saveGameId}/choice`, { choiceId });
+    return res.data;
+  },
+
+  async submitCombatResult(saveGameId: string, newHealth: number): Promise<GameState> {
+    const res = await api.post<GameState>(`/game/${saveGameId}/combat-result`, { newHealth });
     return res.data;
   },
 

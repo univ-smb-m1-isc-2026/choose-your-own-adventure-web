@@ -56,6 +56,9 @@ export interface ChapterDetail {
   isStart: boolean;
   isEnding: boolean;
   endingType: string;
+  isCombat: boolean;
+  combatEnemyName: string;
+  combatEnemyHealth: number;
   positionX: number;
   positionY: number;
   choices: ChoiceDetail[];
@@ -69,6 +72,7 @@ export interface ChoiceDetail {
   displayOrder: number;
   requiresConfirmation: boolean;
   isAvailable: boolean;
+  healthDelta: number | null;
 }
 
 export interface SaveAdventureChapterPayload {
@@ -80,12 +84,16 @@ export interface SaveAdventureChapterPayload {
   isEnding: boolean;
   positionX: number;
   positionY: number;
+  combatEnemyName?: string;
+  combatEnemyHealth?: number;
 }
 
 export interface SaveAdventureEdgePayload {
   sourceId: string;
   targetId: string;
   label: string;
+  healthDelta?: number;
+  requiresConfirmation?: boolean;
 }
 
 export interface SaveAdventurePayload {

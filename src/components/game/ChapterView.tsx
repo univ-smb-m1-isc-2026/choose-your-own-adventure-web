@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 interface ChapterViewProps {
   title: string;
   content: string;
@@ -7,8 +9,16 @@ interface ChapterViewProps {
 }
 
 export default function ChapterView({ title, content, imageUrl, isEnding, endingType }: ChapterViewProps) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(false);
+    const timer = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(timer);
+  }, [title, content]);
+
   return (
-    <div className={`chapter-view ${isEnding ? 'chapter-ending' : ''}`}>
+    <div className={`chapter-view ${isEnding ? 'chapter-ending' : ''} ${visible ? 'chapter-visible' : 'chapter-hidden'}`}>
       {imageUrl && (
         <div className="chapter-image-container">
           <img src={imageUrl} alt={title} className="chapter-image" />

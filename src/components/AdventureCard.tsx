@@ -1,4 +1,4 @@
-import { Heart, BookOpen, Star, Users } from 'lucide-react';
+import { Heart, BookOpen, Star, Users, Edit3 } from 'lucide-react';
 import type { AdventureSummary } from '../services/adventureService';
 import { favoriteService } from '../services/favoriteService';
 import { useAuthStore } from '../store/authStore';
@@ -12,7 +12,7 @@ const difficultyConfig: Record<string, { label: string; class: string }> = {
 };
 
 export default function AdventureCard({ adventure }: { adventure: AdventureSummary }) {
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [fav, setFav] = useState(adventure.isFavorited);
   const navigate = useNavigate();
 
@@ -34,12 +34,27 @@ export default function AdventureCard({ adventure }: { adventure: AdventureSumma
           ))}
         </div>
         {isAuthenticated && (
-          <button
-            className={`fav-btn ${fav ? 'fav-active' : ''}`}
-            onClick={toggleFav}
-          >
-            <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
-          </button>
+          <div className="adventure-card-actions">
+            {adventure.authorUsername === user?.username && (
+              <button
+                className="edit-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/editor/${adventure.id}`);
+                }}
+                title="Éditer"
+              >
+                <Edit3 size={16} />
+              </button>
+            )}
+            <button
+              className={`fav-btn ${fav ? 'fav-active' : ''}`}
+              onClick={toggleFav}
+              title={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            >
+              <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+            </button>
+          </div>
         )}
       </div>
 

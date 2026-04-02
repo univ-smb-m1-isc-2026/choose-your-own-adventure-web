@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { AlertTriangle, Lock } from 'lucide-react';
+import { AlertTriangle, Lock, Heart } from 'lucide-react';
 
 interface Choice {
   id: string;
   label: string;
   requiresConfirmation: boolean;
   isAvailable: boolean;
+  healthDelta: number | null;
 }
 
 interface ChoiceListProps {
@@ -43,6 +44,12 @@ export default function ChoiceList({ choices, onChoose, loading }: ChoiceListPro
             {!choice.isAvailable && <Lock size={14} className="choice-icon" />}
             {confirming === choice.id && <AlertTriangle size={14} className="choice-icon warning" />}
             <span>{confirming === choice.id ? `Confirmer : ${choice.label}` : choice.label}</span>
+            {choice.healthDelta != null && choice.healthDelta !== 0 && (
+              <span className={`choice-health-delta ${choice.healthDelta > 0 ? 'choice-heal' : 'choice-damage'}`}>
+                <Heart size={12} />
+                {choice.healthDelta > 0 ? '+' : ''}{choice.healthDelta}
+              </span>
+            )}
             {choice.isAvailable && <span className="choice-arrow">→</span>}
           </button>
         ))}

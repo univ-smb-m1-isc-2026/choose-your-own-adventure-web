@@ -15,10 +15,11 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import ChapterNode from "@/components/editor/ChapterNode";
 import ChapterPanel from "@/components/editor/ChapterPanel";
+import EdgePanel from "@/components/editor/EdgePanel";
 import EditorToolbar from "@/components/editor/EditorToolbar";
 import ValidationPanel from "@/components/editor/ValidationPanel";
 import { adventureService, type SaveAdventurePayload } from "@/services/adventureService";
-import type { EditorNodeData } from "@/types/editor";
+import type { EditorNodeData, EditorEdgeData } from "@/types/editor";
 
 const nodeTypes = { chapter: ChapterNode };
 
@@ -29,8 +30,9 @@ export default function EditorPage() {
   const navigate = useNavigate();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<EditorNodeData>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<EditorEdgeData>([]);
   const [selectedNode, setSelectedNode] = useState<Node<EditorNodeData> | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge<EditorEdgeData> | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [adventureTitle, setAdventureTitle] = useState("Mon Aventure");
   const [currentAdventureId, setCurrentAdventureId] = useState<string | undefined>(adventureId);
@@ -69,13 +71,15 @@ export default function EditorPage() {
         data: {
           label: ch.title,
           content: ch.content || "",
-          type: ch.isStart ? "start" : ch.isEnding ? "ending" : "normal",
+          type: ch.isStart ? "start" : ch.isCombat ? "combat" : ch.isEnding ? "ending" : "normal",
           isEnding: ch.isEnding,
           imageUrl: ch.imageUrl,
+          combatEnemyName: ch.combatEnemyName,
+          combatEnemyHealth: ch.combatEnemyHealth,
         },
       }));
 
-      const loadedEdges: Edge[] = [];
+      const loadedEdges: Edge<EditorEdgeData>[] = [];
       chapters.forEach((ch) => {
         ch.choices?.forEach((choice) => {
           loadedEdges.push({
@@ -86,6 +90,11 @@ export default function EditorPage() {
             markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
             style: { stroke: "#7c5bf5", strokeWidth: 2 },
             label: choice.label || "Choix",
+            data: {
+              label: choice.label || "Choix",
+              healthDelta: choice.healthDelta || 0,
+              requiresConfirmation: choice.requiresConfirmation || false,
+            },
             labelStyle: { fontSize: 11, fill: "#9b9cb5" },
             labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
           });
@@ -107,6 +116,7 @@ export default function EditorPage() {
             markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
             style: { stroke: "#7c5bf5", strokeWidth: 2 },
             label: "Choix",
+            data: { label: "Choix", healthDelta: 0, requiresConfirmation: false },
             labelStyle: { fontSize: 11, fill: "#9b9cb5" },
             labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
           },
@@ -133,7 +143,13 @@ export default function EditorPage() {
   };
 
   const onNodeClick = useCallback((_: ReactMouseEvent, node: Node<EditorNodeData>) => {
+    setSelectedEdge(null);
     setSelectedNode(node);
+  }, []);
+
+  const onEdgeClick = useCallback((_: ReactMouseEvent, edge: Edge<EditorEdgeData>) => {
+    setSelectedNode(null);
+    setSelectedEdge(edge);
   }, []);
 
   const updateNodeData = (id: string, data: Partial<EditorNodeData>) => {
@@ -145,15 +161,38 @@ export default function EditorPage() {
     );
   };
 
-  const deleteSelected = () => {
-    if (!selectedNode) return;
-    setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
+  const updateEdgeData = (id: string, data: Partial<EditorEdgeData>) => {
     setEdges((eds) =>
-      eds.filter(
-        (e) => e.source !== selectedNode.id && e.target !== selectedNode.id
-      )
+      eds.map((e) => {
+        if (e.id === id) {
+          const newData = { ...e.data, ...data } as EditorEdgeData;
+          return { 
+            ...e, 
+            label: newData.label,
+            data: newData 
+          };
+        }
+        return e;
+      })
     );
-    setSelectedNode(null);
+    setSelectedEdge((prev) =>
+      prev?.id === id ? { ...prev, label: data.label || prev.label, data: { ...prev.data, ...data } as EditorEdgeData } : prev
+    );
+  };
+
+  const deleteSelected = () => {
+    if (selectedNode) {
+      setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
+      setEdges((eds) =>
+        eds.filter(
+          (e) => e.source !== selectedNode.id && e.target !== selectedNode.id
+        )
+      );
+      setSelectedNode(null);
+    } else if (selectedEdge) {
+      setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
+      setSelectedEdge(null);
+    }
   };
 
   const handleSave = async (): Promise<string | undefined> => {
@@ -175,11 +214,15 @@ export default function EditorPage() {
           isEnding: n.data.isEnding,
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
+          combatEnemyName: n.data.combatEnemyName,
+          combatEnemyHealth: n.data.combatEnemyHealth,
         })),
         edges: edges.map((e) => ({
           sourceId: e.source,
           targetId: e.target,
-          label: (e.label as string) || "Choix",
+          label: (e.data?.label as string) || "Choix",
+          healthDelta: e.data?.healthDelta,
+          requiresConfirmation: e.data?.requiresConfirmation,
         })),
       };
 
@@ -195,12 +238,14 @@ export default function EditorPage() {
         data: {
           label: ch.title,
           content: ch.content || "",
-          type: ch.isStart ? "start" : ch.isEnding ? "ending" : "normal",
+          type: ch.isStart ? "start" : ch.isCombat ? "combat" : ch.isEnding ? "ending" : "normal",
           isEnding: ch.isEnding,
           imageUrl: ch.imageUrl,
+          combatEnemyName: ch.combatEnemyName,
+          combatEnemyHealth: ch.combatEnemyHealth,
         },
       }));
-      const loadedEdges: Edge[] = [];
+      const loadedEdges: Edge<EditorEdgeData>[] = [];
       chapters.forEach((ch) => {
         ch.choices?.forEach((choice) => {
           loadedEdges.push({
@@ -211,6 +256,11 @@ export default function EditorPage() {
             markerEnd: { type: MarkerType.ArrowClosed, color: "#7c5bf5" },
             style: { stroke: "#7c5bf5", strokeWidth: 2 },
             label: choice.label || "Choix",
+            data: {
+              label: choice.label || "Choix",
+              healthDelta: choice.healthDelta || 0,
+              requiresConfirmation: choice.requiresConfirmation || false,
+            },
             labelStyle: { fontSize: 11, fill: "#9b9cb5" },
             labelBgStyle: { fill: "#1c1c27", fillOpacity: 0.9 },
           });
@@ -274,7 +324,11 @@ export default function EditorPage() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
-            onPaneClick={() => setSelectedNode(null)}
+            onEdgeClick={onEdgeClick}
+            onPaneClick={() => {
+              setSelectedNode(null);
+              setSelectedEdge(null);
+            }}
             nodeTypes={nodeTypes}
             fitView
             deleteKeyCode="Delete"
@@ -312,6 +366,16 @@ export default function EditorPage() {
             node={selectedNode}
             onUpdate={(data) => updateNodeData(selectedNode.id, data)}
             onClose={() => setSelectedNode(null)}
+            onDelete={deleteSelected}
+          />
+        )}
+
+        {selectedEdge && (
+          <EdgePanel
+            key={selectedEdge.id}
+            edge={selectedEdge}
+            onUpdate={(data) => updateEdgeData(selectedEdge.id, data)}
+            onClose={() => setSelectedEdge(null)}
             onDelete={deleteSelected}
           />
         )}
