@@ -69,6 +69,10 @@ function AdventureDetailContent({ id }: { id: string }) {
         <ArrowLeft size={18} /> Retour
       </button>
 
+      {adventure.imageUrl && (
+        <img src={adventure.imageUrl} alt="" className="detail-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+      )}
+
       <div className="detail-header">
         <div className="detail-info">
           <div className="detail-tags">

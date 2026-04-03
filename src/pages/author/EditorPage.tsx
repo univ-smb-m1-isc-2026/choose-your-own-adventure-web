@@ -35,6 +35,9 @@ export default function EditorPage() {
   const [selectedEdge, setSelectedEdge] = useState<Edge<EditorEdgeData> | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [adventureTitle, setAdventureTitle] = useState("Mon Aventure");
+  const [adventureTags, setAdventureTags] = useState<string[]>([]);
+  const [adventureStatus, setAdventureStatus] = useState<string>("DRAFT");
+  const [adventureImageUrl, setAdventureImageUrl] = useState<string>("");
   const [currentAdventureId, setCurrentAdventureId] = useState<string | undefined>(adventureId);
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +65,9 @@ export default function EditorPage() {
       adventureService.getChapters(adventureId),
     ]).then(([adventure, chapters]) => {
       setAdventureTitle(adventure.title);
+      setAdventureTags(adventure.tags || []);
+      setAdventureStatus(adventure.status || "DRAFT");
+      setAdventureImageUrl(adventure.imageUrl || "");
       setCurrentAdventureId(adventure.id);
 
       const loadedNodes: Node<EditorNodeData>[] = chapters.map((ch, i) => ({
@@ -204,7 +210,9 @@ export default function EditorPage() {
         language: "fr",
         difficulty: "MEDIUM",
         allowBacktrack: true,
-        tags: [],
+        tags: adventureTags,
+        status: adventureStatus,
+        imageUrl: adventureImageUrl,
         chapters: nodes.map((n) => ({
           tempId: n.id,
           title: n.data.label,
@@ -303,6 +311,10 @@ export default function EditorPage() {
       <EditorToolbar
         title={adventureTitle}
         onTitleChange={setAdventureTitle}
+        tags={adventureTags}
+        onTagsChange={setAdventureTags}
+        imageUrl={adventureImageUrl}
+        onImageUrlChange={setAdventureImageUrl}
         onAddChapter={addChapter}
         onDeleteSelected={deleteSelected}
         hasSelection={!!selectedNode}

@@ -69,6 +69,9 @@ export default function DashboardPage() {
             return (
               <div key={a.id} className="dashboard-card">
                 <div className="dashboard-card-main">
+                  {a.imageUrl && (
+                    <img src={a.imageUrl} alt="" className="dashboard-card-image" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  )}
                   <div className="dashboard-card-info">
                     <h3>{a.title}</h3>
                     <div className="dashboard-card-meta">

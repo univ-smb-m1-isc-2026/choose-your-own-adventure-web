@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Node } from "reactflow";
 import { X, Trash2, BookOpen, Swords, Flag, Play, Heart } from "lucide-react";
 import type { EditorNodeData, EditorChapterType } from "@/types/editor";
@@ -26,16 +26,27 @@ export default function ChapterPanel({ node, onUpdate, onClose, onDelete }: Chap
   const [combatEnemyName, setCombatEnemyName] = useState(node.data.combatEnemyName || "L'Ennemi");
   const [combatEnemyHealth, setCombatEnemyHealth] = useState(node.data.combatEnemyHealth || 50);
 
-  const handleSave = () => {
-    onUpdate({
-      label, content,
-      type: type === "ending" ? "normal" : type,
-      isEnding: type === "ending",
-      allowBacktrack, imageUrl,
-      combatEnemyName: type === "combat" ? combatEnemyName : undefined,
-      combatEnemyHealth: type === "combat" ? combatEnemyHealth : undefined,
-    });
-  };
+  const skipInitial = useRef(true);
+
+  useEffect(() => {
+    if (skipInitial.current) {
+      skipInitial.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      onUpdate({
+        label, content,
+        type: type === "ending" ? "normal" : type,
+        isEnding: type === "ending",
+        allowBacktrack, imageUrl,
+        combatEnemyName: type === "combat" ? combatEnemyName : undefined,
+        combatEnemyHealth: type === "combat" ? combatEnemyHealth : undefined,
+      });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [label, content, type, allowBacktrack, imageUrl, combatEnemyName, combatEnemyHealth, onUpdate]);
 
   const inputStyle = {
     width: '100%', padding: '8px 12px', fontSize: '0.875rem',
@@ -115,6 +126,16 @@ export default function ChapterPanel({ node, onUpdate, onClose, onDelete }: Chap
             Image (URL)
           </label>
           <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." style={inputStyle} />
+          {imageUrl && (
+            <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', height: 120 }}>
+              <img 
+                src={imageUrl} 
+                alt="Preview" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+            </div>
+          )}
         </div>
 
         {/* Combat Stats */}
@@ -161,17 +182,10 @@ export default function ChapterPanel({ node, onUpdate, onClose, onDelete }: Chap
       {/* Footer */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 8 }}>
         <button onClick={onDelete} style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: '0.875rem',
-          color: '#f87171', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer'
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 12px', fontSize: '0.875rem',
+          color: '#f87171', background: 'rgba(248, 113, 113, 0.05)', border: '1px solid rgba(248, 113, 113, 0.1)', borderRadius: 8, cursor: 'pointer'
         }}>
-          <Trash2 size={13} /> Supprimer
-        </button>
-        <button onClick={handleSave} style={{
-          flex: 1, padding: '8px 12px', fontSize: '0.875rem', fontWeight: 600,
-          background: 'linear-gradient(135deg, #7c5bf5, #9b7bf7)', color: 'white',
-          border: 'none', borderRadius: 8, cursor: 'pointer'
-        }}>
-          Enregistrer
+          <Trash2 size={13} /> Supprimer le chapitre
         </button>
       </div>
     </div>

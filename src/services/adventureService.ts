@@ -13,6 +13,7 @@ export interface AdventureSummary {
   totalReads: number;
   publishedAt: string;
   isFavorited: boolean;
+  imageUrl?: string;
 }
 
 export interface AdventureCatalogueParams {
@@ -46,6 +47,7 @@ export interface AdventureDetail {
     favoriteCount: number;
   };
   isFavorited: boolean;
+  imageUrl?: string;
 }
 
 export interface ChapterDetail {
@@ -106,6 +108,8 @@ export interface SaveAdventurePayload {
   tags: string[];
   chapters: SaveAdventureChapterPayload[];
   edges: SaveAdventureEdgePayload[];
+  status?: string;
+  imageUrl?: string;
 }
 
 export const adventureService = {

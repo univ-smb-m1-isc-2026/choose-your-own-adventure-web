@@ -37,6 +37,12 @@ export default function ChapterNode({ data, selected }: NodeProps<EditorNodeData
         style={{ width: 12, height: 12, border: '2px solid #16161d', background: '#6b6c85' }}
       />
 
+      {data.imageUrl && (
+        <div style={{ height: 100, borderBottom: `1px solid ${cfg.border}`, overflow: 'hidden', borderTopLeftRadius: 10, borderTopRightRadius: 10 }}>
+          <img src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      )}
+
       <div style={{ padding: '10px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{

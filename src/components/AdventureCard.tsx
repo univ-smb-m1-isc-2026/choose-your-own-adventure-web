@@ -27,6 +27,9 @@ export default function AdventureCard({ adventure }: { adventure: AdventureSumma
 
   return (
     <div className="adventure-card" onClick={() => navigate(`/adventure/${adventure.id}`)}>
+      {adventure.imageUrl && (
+        <img src={adventure.imageUrl} alt="" className="adventure-card-image" onError={(e) => (e.currentTarget.style.display = 'none')} />
+      )}
       <div className="adventure-card-header">
         <div className="adventure-card-tags">
           {adventure.tags?.slice(0, 3).map((t, i) => (
